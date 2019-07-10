@@ -1,20 +1,23 @@
+import sys
+import os
+sys.path.append(os.path.abspath('../models'))
+from FeatureExtractor import StartingVerbExtractor
 import json
 import plotly
 import pandas as pd
 import nltk
+import numpy as np
+import re
 nltk.download('stopwords','punkt','wordnet','averaged_perceptron_tagger')
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
-
+from nltk.corpus import stopwords
 from flask import Flask
 from flask import render_template, request, jsonify
 from plotly.graph_objs import Bar, Heatmap
 from sklearn.externals import joblib
 from sqlalchemy import create_engine 
-import sys
-import os
-sys.path.append(os.path.abspath('../models'))
-from FeatureExtractor import StartingVerbExtractor
+from collections import Counter
 
 app = Flask(__name__)
 
@@ -30,6 +33,7 @@ def takeSecond(elem):
     '''
     return elem[1]
 
+
 def tokenize(text):
     '''
     input: (
@@ -41,7 +45,7 @@ def tokenize(text):
         clean_tokens: list of tokens in text after cleaning
         )
     '''
-    tokens = word_tokenize(text)
+    '''tokens = word_tokenize(text)
     lemmatizer = WordNetLemmatizer()
 
     clean_tokens = []
@@ -49,9 +53,58 @@ def tokenize(text):
         clean_tok = lemmatizer.lemmatize(tok).lower().strip()
         clean_tokens.append(clean_tok)
 
+    clean_tokens = [token for token in clean_tokens if len(token) > 2]'''
+    url_regex = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
+    detected_urls = re.findall(url_regex, text)
+    
+    for url in detected_urls:
+        text = text.replace(url, "urlplaceholder")
+    stop_words = stopwords.words("english")
+    words = word_tokenize(text)
+    lemmatizer = WordNetLemmatizer()
+    clean_tokens = []
+    for word in words: 
+        if word not in stop_words:
+            clean_tok = lemmatizer.lemmatize(word).lower().strip() 
+            clean_tokens.append(clean_tok)
+    # remove short words
     clean_tokens = [token for token in clean_tokens if len(token) > 2]
 
     return clean_tokens
+
+def compute_word_counts(messages, load=True, filepath='../data/counts.npz'):
+    '''
+    input: (
+        messages: list or numpy array
+        load: Boolean value if load or run model 
+        filepath: filepath to save or load data
+            )
+    Function computes the top 20 words in the dataset with counts of each term
+    output: (
+        top_words: list
+        top_counts: list 
+            )
+    '''
+    if load:
+        # load arrays
+        data = np.load(filepath)
+        return list(data['top_words']), list(data['top_counts'])
+    else:
+        # get top words 
+        counter = Counter()
+        for message in messages:
+            tokens = tokenize(message)
+            for token in tokens:
+                counter[token] += 1
+        # top 20 words 
+        top = counter.most_common(20)
+        top_words = [word[0] for word in top]
+        top_counts = [count[1] for count in top]
+        # save arrays
+        np.savez(filepath, top_words=top_words, top_counts=top_counts)
+        return list(top_words), list(top_counts)
+
+
 
 # load data
 engine = create_engine('sqlite:///../data/DisasterResponse.db')
@@ -82,6 +135,9 @@ def index():
     top_categories_names = [ cat[0] for cat in top_categories]
     top_categories_corr = df[top_categories_names].corr()
     
+    # get top words counts
+    top_words, top_counts = compute_word_counts(df['message'], load=False, filepath='../data/counts.npz')
+
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
     graphs = [
@@ -137,6 +193,24 @@ def index():
                 },
                 'xaxis': {
                     'title': "Top Categories"
+                }
+            }
+        },
+        {
+            'data': [
+                Bar(
+                    x=top_words,
+                    y=top_counts
+                )
+            ],
+
+            'layout': {
+                'title': 'Counts of Top Words Used in Messages',
+                'yaxis': {
+                    'title': "Count"
+                },
+                'xaxis': {
+                    'title': "Words"
                 }
             }
         }

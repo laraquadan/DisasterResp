@@ -34,7 +34,7 @@ def clean_data(df):
     df.duplicated(subset='message', keep='first').sum()
     # drop duplicates
     df.drop_duplicates(subset ="message", keep ='first', inplace = True)
-    
+
     return df
     
     

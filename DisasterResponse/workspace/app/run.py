@@ -19,9 +19,28 @@ from FeatureExtractor import StartingVerbExtractor
 app = Flask(__name__)
 
 def takeSecond(elem):
+    '''
+    input:(
+        elem: set of two elemets,
+    )
+    Function used by the sorted() function to get the second elemnt in a set
+    output:(
+        elem[1]: the second element of the set
+    )
+    '''
     return elem[1]
 
 def tokenize(text):
+    '''
+    input: (
+        text: string to tokenize 
+        )
+    Function reads a string, cleans it and returns a list of extracted tokens after removing stop words and short words and replacing all urls with a urlplaceholder. 
+    Then generalizes all word forms by lemmetization  
+    output: (
+        clean_tokens: list of tokens in text after cleaning
+        )
+    '''
     tokens = word_tokenize(text)
     lemmatizer = WordNetLemmatizer()
 
@@ -29,6 +48,8 @@ def tokenize(text):
     for tok in tokens:
         clean_tok = lemmatizer.lemmatize(tok).lower().strip()
         clean_tokens.append(clean_tok)
+
+    clean_tokens = [token for token in clean_tokens if len(token) > 2]
 
     return clean_tokens
 
@@ -44,7 +65,9 @@ model = joblib.load("../models/classifier.pkl")
 @app.route('/')
 @app.route('/index')
 def index():
-    
+    '''
+    Function handels the '/index' route and renders web page with plotly graphs after creating graphJSON object 
+    '''
     # extract data needed for visuals
     # TODO: Below is an example - modify to extract data for your own visuals
     genre_counts = df.groupby('genre').count()['message']
@@ -130,6 +153,10 @@ def index():
 # web page that handles user query and displays model results
 @app.route('/go')
 def go():
+    '''
+    Function handels the '/go' route, get the input queru from request, predict the classification tables and renders 
+    web page that displays the predicted clssification labels
+    '''
     # save user input in query
     query = request.args.get('query', '') 
 

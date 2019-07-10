@@ -4,13 +4,31 @@ import numpy as np
 from sqlalchemy import create_engine
 
 def load_data(messages_filepath, categories_filepath):
+    '''
+     input: (
+            messages_filepath: file path scv file path containing disaster response messages,
+            categories_filepath: file path scv file path containg the categories for each message 
+            )
+     Function loads data from the csv files and merges them in one dataframe  
+     output: (
+        df: Dataframe containing all messages and their categories
+        )
+    '''
     messages = pd.read_csv(messages_filepath)
     categories = pd.read_csv(categories_filepath)
     df = messages.merge(categories,on='id')
     return df
 
 def clean_data(df):
-    
+    '''
+     input: (
+            df: Dataframe containing all messages and their categories 
+            )
+     Function split the categories column into multiple columns with 0 or 1 values and removes all duplicates from the dataframe
+     output: (
+        df: Dataframe containing all messages and their categories after cleaning
+        )
+    '''
     categories = df['categories'].str.split(';',expand=True)
     row = categories.loc[0,:]
     category_colnames = row.apply(lambda x: x.split('-')[0])
@@ -39,6 +57,16 @@ def clean_data(df):
     
     
 def save_data(df, database_filename):
+    '''
+     input: (
+            df: Dataframe containing all messages and their categories, 
+            database_filename: filepath database path to save the data
+            )
+     Function saves the cleaned dataframe to a sql database
+     output: (
+        df: Dataframe containing all messages and their categories after cleaning
+        )
+    '''
     engine = create_engine('sqlite:///{}'.format(database_filename))
     df.to_sql('messages', engine, index=False, if_exists='replace')
     return

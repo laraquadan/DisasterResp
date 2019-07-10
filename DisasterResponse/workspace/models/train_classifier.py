@@ -22,6 +22,18 @@ import pickle
 from FeatureExtractor import StartingVerbExtractor
 
 def load_data(database_filepath):
+    '''
+     input: (
+            database_filepath: file path to load data from 
+            )
+     Function loads data from the database and saves them in a dataframe and splits the data into the message dataframe and the categories dataframe 
+     output: (
+        X: Dataframe containing all messages
+        Y: Dataframe categories
+        categories: list all categories names
+        )
+    '''
+
     # load data from database
     engine = create_engine('sqlite:///{}'.format(database_filepath))
     messages_select_query = "Select * from messages" 
@@ -31,6 +43,16 @@ def load_data(database_filepath):
     return X, Y, Y.columns
 
 def tokenize(text):
+    '''
+    input: (
+        text: string to tokenize 
+        )
+    Function reads a string, cleans it and returns a list of extracted tokens after removing stop words and short words and replacing all urls with a urlplaceholder. 
+    Then generalizes all word forms by lemmetization  
+    output: (
+        clean_tokens: list of tokens in text after cleaning
+        )
+    '''
     url_regex = 'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'
     detected_urls = re.findall(url_regex, text)
     
@@ -50,6 +72,12 @@ def tokenize(text):
 
 
 def build_model():
+    '''
+    Function builds a model pipeline using random forest classifier and runs GridSearch to optimze classifier parameters
+    output: (
+        cv: model pipeline after optimization
+        )
+    '''
     pipeline = Pipeline([
         ('features', FeatureUnion([
 
@@ -76,13 +104,29 @@ def build_model():
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
+    '''
+    input:(
+        model: pipeline trained classifier model,
+        X_test: inpute features for testing the model,
+        Y_test: output categories for evaluating the model,
+        category_names: list of output categories or labels
+    )
+    Function gets the trained model and run predictions on it using the testing dataset then evaluates the model prints the classification report
+    
+    '''
     y_pred = model.predict(X_test)
     for ndx in range(0,len(category_names)):
         print(category_names[ndx])
         print(classification_report(Y_test.iloc[:,ndx],y_pred[:,ndx]))
 
 def save_model(model, model_filepath):
-    
+    '''
+    input:(
+        model: pipeline trained classifier model,
+        model_filepath: filepath pickle file to save the trained model
+    )
+    Function saves the trained model in a pickle file for future predictions
+    '''
     pickle.dump(model, open(model_filepath, 'wb'))
 
 

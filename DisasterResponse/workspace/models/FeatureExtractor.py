@@ -7,6 +7,16 @@ class StartingVerbExtractor(BaseEstimator, TransformerMixin):
         self.tokenize = tokenize
         
     def starting_verb(self, text):
+        '''
+        input: (
+            self: class object instance,
+            text: string text to extract the starting verb 
+            )
+        Method reads text data and returns True if the text starts with a verb and False otherwise  
+        output: (
+        found: Boolean True if data starts with a verb and False otherwise
+        )
+        '''
         sentence_list = nltk.sent_tokenize(text)
         found = False
         for sentence in sentence_list:

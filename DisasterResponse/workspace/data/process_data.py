@@ -17,6 +17,7 @@ def load_data(messages_filepath, categories_filepath):
     messages = pd.read_csv(messages_filepath)
     categories = pd.read_csv(categories_filepath)
     df = messages.merge(categories,on='id')
+    assert len(df) > 0, "Error, No data was loaded"
     return df
 
 def clean_data(df):
@@ -52,7 +53,7 @@ def clean_data(df):
     df.duplicated(subset='message', keep='first').sum()
     # drop duplicates
     df.drop_duplicates(subset ="message", keep ='first', inplace = True)
-
+    assert len(df[df.duplicated()]) == 0
     return df
     
     
